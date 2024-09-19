@@ -710,7 +710,7 @@ def add_roleaccount(request):
 
 @requires_course_staff_by_slug
 def manage_tas(request, course_slug):
-    course = get_object_or_404(CourseOffering, slug=course_slug)
+    course = get_object_or_404(CourseOffering.objects.select_related('owner'), slug=course_slug)
     longform = False
     if not Member.objects.filter(offering=course, person__userid=request.user.username, role="INST"):
         # only instructors can manage TAs
@@ -769,7 +769,7 @@ def manage_tas(request, course_slug):
     else:
         form = TAForm(offering=course)
 
-    tas = Member.objects.filter(role="TA", offering=course)
+    tas = Member.objects.filter(role="TA", offering=course).select_related('person')
     context = {'course': course, 'form': form, 'tas': tas, 'longform': longform}
     return render(request, 'coredata/manage_tas.html', context)
 
@@ -1100,13 +1100,13 @@ def student_search(request):
 
     # do the query with Haystack
     # experimentally, score >= 1 seems to correspond to useful things
-    student_qs = SearchQuerySet().models(Person).filter(text_fuzzy=term)[:20]
+    student_qs = SearchQuerySet().models(Person).filter(text__fuzzy=term)[:20]
     data = [{'value': r.emplid, 'label': r.search_display} for r in student_qs
             if r and r.score >= 1 and str(r.emplid) not in EXCLUDE_EMPLIDS]
     
     # non-haystack version of the above query
     if len(student_qs) == 0:
-        studentQuery = get_query(term, ['userid', 'emplid', 'first_name', 'last_name'])
+        studentQuery = get_query(term, ['userid', 'emplid', 'first_name', 'last_name', 'pref_first_name'])
         students = Person.objects.filter(studentQuery)[:20]
         data = [{'value': s.emplid, 'label': s.search_label_value()} for s in students if str(s.emplid) not in EXCLUDE_EMPLIDS]
 
