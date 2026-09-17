@@ -461,6 +461,9 @@ def admin_panel(request):
         elif request.GET['content'] == 'pip':
             data = panel.pip_info()
             return render(request, 'coredata/admin_panel_tab.html', {'pip': data})
+        elif request.GET['content'] == 'photos':
+            from dashboard.photos import api_info
+            return render(request, 'coredata/admin_panel_tab.html', {'photoapi': api_info()})
         elif request.GET['content'] == 'csrpt':
             data = panel.csrpt_info()
             return render(request, 'coredata/admin_panel_tab.html', {'csrpt': data})
@@ -468,6 +471,10 @@ def admin_panel(request):
             environ = [(k,v) for k,v in os.environ.items() if 'PASS' not in k]
             environ.sort()
             return render(request, 'coredata/admin_panel_tab.html', {'environ': environ})
+        elif request.GET['content'] == 'docker-ps':
+            return render(request, 'coredata/admin_panel_tab.html', {'small_content': "# docker compose ps\n" + panel.get_docker_status('ps')})
+        elif request.GET['content'] == 'docker-stats':
+            return render(request, 'coredata/admin_panel_tab.html', {'small_content': "# docker compose stats\n" + panel.get_docker_status('stats')})
         elif request.GET['content'] == 'throw':
             raise RuntimeError(
                 'This is a deliberately-thrown exception to test exception-handling in the system. It can be ignored.')
@@ -507,7 +514,8 @@ def admin_panel(request):
                 messages.success(request, 'Grad update and import tasks started.')
 
     context = {
-        'loadavg': os.getloadavg()
+        'loadavg': os.getloadavg(),
+        'gitcommit': os.environ.get('GIT_COMMIT', 'unknown'),
     }
     return render(request, 'coredata/admin_panel.html', context)
 
@@ -1812,5 +1820,5 @@ def demo_data(request):
     data.append(people)
     data.append(instructors)
 
-    content = serializers.serialize('json', itertools.chain.from_iterable(data), indent=2)
+    content = serializers.serialize('json', itertools.chain.from_iterable(data))
     return HttpResponse(content, content_type='application/json')

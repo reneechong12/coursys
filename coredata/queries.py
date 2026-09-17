@@ -763,6 +763,14 @@ def course_data(emplid, needed=ALLFIELDS, exclude=[]):
         del rdata['reqdes']
         if strm in semester_lookup:
             semester_lookup[strm]['courses'].append(rdata)
+
+    # freshness
+    db.execute("""SELECT SFU_CLONE_DTTM FROM PS_SFU_CLONE_INFO""", ())
+    row = db.fetchone()
+    if row:
+        data['refresh'] = str(row[0])
+    else:
+        data['refresh'] = 'unknown'
     
     return data
 
@@ -1588,7 +1596,7 @@ def import_person(p, commit=True, grad_data=False):
         ## but freak out if a userid changes
         if p.userid and p.userid != userid:
             #raise ValueError, "Somebody's userid changed? %s became %s." % (p.userid, userid)
-            mail_admins('userid change', "Somebody's userid changed: %s became %s." % (p.userid, userid))
+            mail_admins(subject='userid change', message="Somebody's userid changed: %s became %s." % (p.userid, userid))
         p.userid = userid
 
     if grad_data:

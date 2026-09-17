@@ -33,6 +33,9 @@ sudo install -o 1000 -d ${DATA_PREFIX}elasticsearch7
 
 sudo apt-get install -y make docker-compose-v2 docker-buildx
 sudo gpasswd -a `whoami` docker
+echo 'export HOST_DOCKER_GID=`getent group docker | cut -d: -f3`' >> /etc/profile.d/coursys.sh
+chmod 0644 /etc/profile.d/coursys.sh
+. /etc/profile.d/coursys.sh
 ```
 Log out and back in so the group membership takes effect.
 
@@ -41,7 +44,6 @@ Log out and back in so the group membership takes effect.
 
 ```shell
 cd /coursys
-make get-docker-rollout
 docker compose pull
 docker compose build --pull
 docker compose up -d mysql elasticsearch rabbitmq memcached
@@ -50,8 +52,9 @@ docker compose run manage collectstatic --no-input
 docker compose up --remove-orphans -d
 ```
 
+## Loading Data
 
-## Demo Data
+### Demo Data
 
 Demo data can be fetched from the production server, giving a secret key that is the first 6
 characters of the server secret (technically, `urllib.parse.quote(settings.SECRET_KEY[:6])`).
@@ -65,6 +68,13 @@ sudo cp /tmp/demodata.json /data/dynamic_config/
 sudo chmod 0644 /data/dynamic_config/demodata.json
 docker compose run manage load_demo_data /dynamic_config/demodata.json
 docker compose run manage rebuild_index --noinput
+```
+
+### Developer Data
+
+If you don't need the user-facing demo data, you can load the developer data instead:
+```shell
+docker compose run manage loaddata fixtures/*
 ```
 
 

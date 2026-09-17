@@ -2,6 +2,7 @@ import datetime
 import http.client
 import ssl
 from email.utils import parsedate_to_datetime
+import sys
 from typing import Any, Dict
 
 import psutil
@@ -483,8 +484,8 @@ def cache_check():
 
 def send_test_email(email):
     try:
-        send_mail('check_things test message', "This is a test message to make sure they're getting through.",
-                  settings.DEFAULT_FROM_EMAIL, [email], fail_silently=False)
+        send_mail(subject='check_things test message', message="This is a test message to make sure they're getting through.",
+                  from_email=settings.DEFAULT_FROM_EMAIL, recipient_list=[email], fail_silently=False)
         return True, "Message sent to %s." % (email)
     except socket.error:
         return False, "socket error: maybe can't communicate with AMPQ for celery sending?"
@@ -517,7 +518,7 @@ def pip_info():
     pip = subprocess.Popen(['pip3', 'freeze'], stdout=subprocess.PIPE)
     output = pip.stdout.read().decode('utf8')
     result = '<pre>' + escape(output) + '</pre>'
-    return [('PIP freeze', mark_safe(result))]
+    return [('Python Version', sys.version), ('PIP freeze', mark_safe(result))]
 
 
 def csrpt_info():
@@ -525,6 +526,18 @@ def csrpt_info():
         return csrpt_update()
     except SIMSProblem as e:
         return [('SIMS problem', str(e))]
+
+
+def get_docker_status(page: str) -> str:
+    """
+    Call celery task for docker status report
+    """
+    from coredata.tasks import get_docker_output
+    try:
+        res = get_docker_output.delay(page)
+        return res.get(timeout=10)
+    except Exception as e:
+        return str(e)
 
 
 def health_check() -> Dict[str, Any]:
